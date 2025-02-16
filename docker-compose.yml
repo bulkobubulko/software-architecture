@@ -1,0 +1,49 @@
+services:
+  hazelcast1:
+    image: hazelcast/hazelcast:latest
+    environment:
+      - HZ_CLUSTERNAME=dev
+    ports:
+      - "5701:5701"
+    volumes:
+      - ./hazelcast.yaml:/opt/hazelcast/config/hazelcast.yaml
+    networks:
+      - hazelcast-network
+
+  hazelcast2:
+    image: hazelcast/hazelcast:latest
+    environment:
+      - HZ_CLUSTERNAME=dev
+    ports:
+      - "5702:5701"
+    volumes:
+      - ./hazelcast.yaml:/opt/hazelcast/config/hazelcast.yaml
+    networks:
+      - hazelcast-network
+
+  hazelcast3:
+    image: hazelcast/hazelcast:latest
+    environment:
+      - HZ_CLUSTERNAME=dev
+    ports:
+      - "5703:5701"
+    volumes:
+      - ./hazelcast.yaml:/opt/hazelcast/config/hazelcast.yaml
+    networks:
+      - hazelcast-network
+
+  management-center:
+    image: hazelcast/management-center:latest
+    environment:
+      - MC_DEFAULT_CLUSTER=dev
+      - MC_DEFAULT_CLUSTER_MEMBERS=hazelcast1,hazelcast2,hazelcast3
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./hazelcast.yaml:/opt/hazelcast/config/hazelcast.yaml
+    networks:
+      - hazelcast-network
+
+networks:
+  hazelcast-network:
+    name: hazelcast-network
