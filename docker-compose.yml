@@ -1,0 +1,96 @@
+services:
+  facade-service:
+    build: ./facade-service
+    ports:
+      - "8000:8000"
+    depends_on:
+      - logging-service-1
+      - logging-service-2
+      - logging-service-3
+      - messages-service
+    networks:
+      - hazelcast-network
+
+  logging-service-1:
+    build: ./logging-service
+    ports:
+      - "8001:8001"
+    environment:
+      - HAZELCAST_CLUSTER_NAME=dev
+      - HAZELCAST_CLUSTER_MEMBERS=hazelcast1, hazelcast2, hazelcast3
+    networks:
+      - hazelcast-network
+    depends_on:
+      - hazelcast1
+
+  logging-service-2:
+    build: ./logging-service
+    ports:
+      - "8002:8001"
+    environment:
+      - HAZELCAST_CLUSTER_NAME=dev
+      - HAZELCAST_CLUSTER_MEMBERS=hazelcast1, hazelcast2, hazelcast3
+    networks:
+      - hazelcast-network
+    depends_on:
+      - hazelcast2
+
+  logging-service-3:
+    build: ./logging-service
+    ports:
+      - "8003:8001"
+    environment:
+      - HAZELCAST_CLUSTER_NAME=dev
+      - HAZELCAST_CLUSTER_MEMBERS=hazelcast1, hazelcast2, hazelcast3
+    networks:
+      - hazelcast-network
+    depends_on:
+      - hazelcast3
+
+  messages-service:
+    build: ./messages-service
+    ports:
+      - "8004:8004"
+    networks:
+      - hazelcast-network
+
+  hazelcast1:
+    image: hazelcast/hazelcast:latest
+    environment:
+      - HAZELCAST_CLUSTER_NAME=dev
+    ports:
+      - "5701:5701"
+    networks:
+      - hazelcast-network
+
+  hazelcast2:
+    image: hazelcast/hazelcast:latest
+    environment:
+      - HAZELCAST_CLUSTER_NAME=dev
+    ports:
+      - "5702:5701"
+    networks:
+      - hazelcast-network
+
+  hazelcast3:
+    image: hazelcast/hazelcast:latest
+    environment:
+      - HAZELCAST_CLUSTER_NAME=dev
+    ports:
+      - "5703:5701"
+    networks:
+      - hazelcast-network
+
+  management-center:
+    image: hazelcast/management-center:latest
+    environment:
+      - MC_DEFAULT_CLUSTER=dev
+      - MC_DEFAULT_CLUSTER_MEMBERS=hazelcast1,hazelcast2,hazelcast3
+    ports:
+      - "8080:8080"
+    networks:
+      - hazelcast-network
+
+networks:
+  hazelcast-network:
+    name: hazelcast-network
