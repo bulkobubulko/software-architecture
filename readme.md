@@ -1,4 +1,4 @@
-# Homework 2
+# Task 2 - Deployment and working with distributed in-memory data structures based on Hazelcast: Distributed Map
 
 #### 1. Setup
 [Install Docker](https://docs.docker.com/get-docker/)
