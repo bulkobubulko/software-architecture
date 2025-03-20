@@ -1,4 +1,4 @@
-# Homework 3
+# Task 3 - Microservices using Hazelcast Distributed Map
 
 ## Microservices architecture
 ![microservices-architecture-0](data/microservices-architecture-0.png)
