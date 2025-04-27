@@ -1,4 +1,4 @@
-# Task 4 - Microservices using Messaging queue
+# Task 5 - Microservices using Service Discovery and Config Server based on Consul
 
 ## Microservices architecture
 For this task we update architecture as such:
@@ -12,80 +12,43 @@ For this task we update architecture as such:
 
 [Kafka](https://hub.docker.com/r/apache/kafka) is used as the message queue.
 
+All above is based on previoud labs. In this we are to add Consul, it will serve as the Service Register, Service Discovery, and Config Server.
+
 ## Build and run the services
 ```
 docker-compose down --remove-orphans && docker-compose up --build -d
 ```
 
-Send 10 messages through the facade service
-```
-for i in {1..10}; do
-  curl -X POST "http://localhost:8000/" -H "Content-Type: application/json" -d "{\"msg\": \"msg$i\"}"
-  echo ""
-done
-```
-
+The Consul UI, `http://localhost:8500/ui/dc1/services`, shows all registered services:
 ![img-0](data/img-0.png)
 
-Check the logs to see which messages were received by each logging service
+Lets test with sending a POST request to the facade service:
 ```
-docker-compose logs logging-service-1
-docker-compose logs logging-service-2
-docker-compose logs logging-service-3
+curl -X POST "http://localhost:8000/" -H "Content-Type: application/json" -d '{"msg": "meow"}'
 ```
-
 ![img-1](data/img-1.png)
 
-Check the logs to see which messages were received by each messages service
-```
-docker-compose logs messages-service-1
-docker-compose logs messages-service-2
-```
-
-![img-1](data/img-2.png)
-
-Get all messages
+And GET request:
 ```
 curl -X GET "http://localhost:8000/"
 ```
+![img-2](data/img-2.png)
 
+Service discovery with Consul is working as expected! The urls were discovered through Consul's service registry.
+
+Now lets test fault tollerance
+```
+docker-compose stop messages-service-1
+```
 ![img-3](data/img-3.png)
 
+Now we see one messages-service, whereas previously there were two of them.
 
-Now lets do fault tolerance test!
+When we will send another POST request
+```
+curl -X POST "http://localhost:8000/" -H "Content-Type: application/json" -d '{"msg": "meow-meow"}'
+```
 
-First we stop both message services
-```
-docker-compose stop messages-service-1 messages-service-2
-```
+We still get the proper response despite one service being down.
 
 ![img-4](data/img-4.png)
-
-And send more messages
-```
-for i in {11..20}; do
-  curl -X POST "http://localhost:8000/" -H "Content-Type: application/json" -d "{\"msg\": \"msg$i\"}"
-  echo ""
-done
-```
-
-![img-5](data/img-5.png)
-
-Now we stop Kafka broker, here it chooses the leader 
-```
-docker-compose stop kafka-broker-1
-```
-
-![img-6](data/img-6.png)
-
-Start the message services again
-```
-docker-compose start messages-service-1 messages-service-2
-```
-![img-6](data/img-7.png)
-
-And lets get all messages. It shows that all messages were processed, even though one Kafka broker was down during the restart
-```
-curl -X GET "http://localhost:8000/"
-```
-![img-8](data/img-8.png)

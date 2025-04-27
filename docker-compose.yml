@@ -1,86 +1,146 @@
 services:
+  consul-server:
+    image: hashicorp/consul:latest
+    container_name: consul-server
+    ports:
+      - "8500:8500"
+      - "8600:8600/udp"
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+      - CONSUL_CLIENT_INTERFACE=eth0
+    command: "agent -server -ui -bootstrap-expect=1 -client=0.0.0.0"
+    networks:
+      - hazelcast-network
+      - kafka-network
+
+  consul-init:
+    image: hashicorp/consul:latest
+    container_name: consul-init
+    depends_on:
+      - consul-server
+    entrypoint: ["sh", "-c"]
+    command: |
+      "sleep 10 &&
+      consul kv put -http-addr=consul-server:8500 config/kafka/bootstrap_servers 'kafka-broker-1:9092,kafka-broker-2:9092,kafka-broker-3:9092' &&
+      consul kv put -http-addr=consul-server:8500 config/kafka/topic 'messages-topic' &&
+      consul kv put -http-addr=consul-server:8500 config/hazelcast/cluster_name 'dev' &&
+      consul kv put -http-addr=consul-server:8500 config/hazelcast/cluster_members 'hazelcast1:5701,hazelcast2:5701,hazelcast3:5701'"
+    networks:
+      - hazelcast-network
+      - kafka-network
+
   facade-service:
     build: ./facade-service
+    hostname: facade-service
     ports:
       - "8000:8000"
     depends_on:
-      - logging-service-1
-      - logging-service-2
-      - logging-service-3
-      - messages-service-1
-      - messages-service-2
+      - consul-server
+      - consul-init
       - kafka-broker-1
       - kafka-broker-2
       - kafka-broker-3
     environment:
-      - KAFKA_BOOTSTRAP_SERVERS=kafka-broker-1:9092,kafka-broker-2:9092,kafka-broker-3:9092
-      - KAFKA_TOPIC=messages-topic
+      - CONSUL_HOST=consul-server
+      - CONSUL_PORT=8500
+      - SERVICE_NAME=facade-service
+      - SERVICE_PORT=8000
     networks:
       - hazelcast-network
       - kafka-network
 
   logging-service-1:
     build: ./logging-service
+    hostname: logging-service-1
     ports:
       - "8001:8001"
     environment:
-      - HAZELCAST_CLUSTER_NAME=dev
-      - HAZELCAST_CLUSTER_MEMBERS=hazelcast1, hazelcast2, hazelcast3
+      - CONSUL_HOST=consul-server
+      - CONSUL_PORT=8500
+      - SERVICE_NAME=logging-service
+      - SERVICE_PORT=8001
+      - HOSTNAME=logging-service-1
     networks:
       - hazelcast-network
     depends_on:
+      - consul-server
+      - consul-init
       - hazelcast1
 
   logging-service-2:
     build: ./logging-service
+    hostname: logging-service-2
     ports:
       - "8002:8001"
     environment:
-      - HAZELCAST_CLUSTER_NAME=dev
-      - HAZELCAST_CLUSTER_MEMBERS=hazelcast1, hazelcast2, hazelcast3
+      - CONSUL_HOST=consul-server
+      - CONSUL_PORT=8500
+      - SERVICE_NAME=logging-service
+      - SERVICE_PORT=8001
+      - HOSTNAME=logging-service-2
     networks:
       - hazelcast-network
     depends_on:
+      - consul-server
+      - consul-init
       - hazelcast2
 
   logging-service-3:
     build: ./logging-service
+    hostname: logging-service-3
     ports:
       - "8003:8001"
     environment:
-      - HAZELCAST_CLUSTER_NAME=dev
-      - HAZELCAST_CLUSTER_MEMBERS=hazelcast1, hazelcast2, hazelcast3
+      - CONSUL_HOST=consul-server
+      - CONSUL_PORT=8500
+      - SERVICE_NAME=logging-service
+      - SERVICE_PORT=8001
+      - HOSTNAME=logging-service-3
     networks:
       - hazelcast-network
     depends_on:
+      - consul-server
+      - consul-init
       - hazelcast3
 
   messages-service-1:
     build: ./messages-service
+    hostname: messages-service-1
     ports:
       - "8004:8004"
     environment:
-      - KAFKA_BOOTSTRAP_SERVERS=kafka-broker-1:9092,kafka-broker-2:9092,kafka-broker-3:9092
-      - KAFKA_TOPIC=messages-topic
+      - CONSUL_HOST=consul-server
+      - CONSUL_PORT=8500
+      - SERVICE_NAME=messages-service
+      - SERVICE_PORT=8004
+      - HOSTNAME=messages-service-1
       - SERVICE_ID=1
     networks:
       - kafka-network
     depends_on:
+      - consul-server
+      - consul-init
       - kafka-broker-1
       - kafka-broker-2
       - kafka-broker-3
 
   messages-service-2:
     build: ./messages-service
+    hostname: messages-service-2
     ports:
       - "8005:8004"
     environment:
-      - KAFKA_BOOTSTRAP_SERVERS=kafka-broker-1:9092,kafka-broker-2:9092,kafka-broker-3:9092
-      - KAFKA_TOPIC=messages-topic
+      - CONSUL_HOST=consul-server
+      - CONSUL_PORT=8500
+      - SERVICE_NAME=messages-service
+      - SERVICE_PORT=8004
+      - HOSTNAME=messages-service-2
       - SERVICE_ID=2
     networks:
       - kafka-network
     depends_on:
+      - consul-server
+      - consul-init
       - kafka-broker-1
       - kafka-broker-2
       - kafka-broker-3
